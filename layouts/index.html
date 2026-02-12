@@ -1,0 +1,175 @@
+{{ partial "header.html" . }}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body);"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.getElementById('category-table'), {
+        delimiters: [
+            {left: '\\(', right: '\\)', display: false},
+            {left: '\\[', right: '\\]', display: true}
+        ],
+        throwOnError : false
+    });
+});
+</script>
+
+<main class="main">
+  <article class="post">
+    <header class="post-header">
+      <h1 class="post-title">{{ .Title }}</h1>
+    </header>
+
+    <div class="post-content">
+      {{ .Content }}
+
+      <hr>
+
+      <input type="text" id="tableSearch" placeholder="Search by metadata (e.g. 'SU(2)', 'E6', '27.8' etc.)"
+             style="width: 100%; padding: 10px; margin-bottom: 20px; border: 2px solid #000; font-family: inherit;">
+
+      <table id="category-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead>
+          <tr style="border-bottom: 2px solid #000;">
+            <th style="text-align: left; padding: 10px;">Category</th>
+            <th style="text-align: left; padding: 10px;">Rank</th>
+            <th style="text-align: left; padding: 10px;">$D^2$</th>
+            <th style="text-align: left; padding: 10px;">Cartan Type</th>
+            <th style="text-align: left; padding: 10px;">Level</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range (where .Site.RegularPages "Section" "categories").ByParam "rank" }}
+
+          {{ if .Params.rank }}
+          <tr>
+            <td>
+              <a href="{{ .RelPermalink }}">
+                {{- $raw := .Params.name -}}
+                {{- if and (hasPrefix $raw "(") (hasSuffix $raw ")") -}}
+                {{- printf "\\%s\\" (replace $raw ")" "\\)") | safeHTML -}}
+                {{- else -}}
+                {{- $raw | safeHTML -}}
+                {{- end -}}
+              </a>
+            </td>
+
+            <td>{{ .Params.rank }}</td>
+            <td>{{ .Params.total_dim }}</td>
+            <td>{{ .Params.ctype }}</td>
+    <td>{{ .Params.level }}</td>
+  </tr>
+  {{ end }}
+
+{{ end }}
+
+        </tbody>
+      </table>
+    </div>
+  </article>
+</main>
+
+<!-- * Table formatting !-->
+
+<script>
+  document.getElementById('tableSearch').addEventListener('keyup', function() {
+    let filter = this.value.toUpperCase();
+    let rows = document.querySelector("#category-table tbody").rows;
+    for (let i = 0; i < rows.length; i++) {
+      let text = rows[i].textContent.toUpperCase();
+      rows[i].style.display = text.includes(filter) ? "" : "none";
+    }
+  });
+</script>
+
+  <style>
+    /* Sort Icons and Header Styling */
+    #category-table th {
+        cursor: pointer;
+        position: relative;
+        transition: background-color 0.2s;
+    }
+    #category-table th:hover {
+        background-color: #f0f0f0;
+    }
+    #category-table th:after {
+        content: " ↕";
+        font-size: 0.8em;
+        color: #ccc;
+        margin-left: 5px;
+    }
+    #category-table th.th-sort-asc:after {
+        content: " ↑";
+        color: #000;
+    }
+    #category-table th.th-sort-desc:after {
+        content: " ↓";
+        color: #000;
+    }
+  </style>
+
+  <table id="category-table">
+     </table>
+
+</div>
+
+<!-- * Table sorting function !-->
+<script>
+/**
+ * Sorts an HTML table.
+ * @param {HTMLTableElement} table The table to sort
+ * @param {number} column The index of the column to sort
+ * @param {boolean} asc Determines if sorting is ascending
+ */
+function sortTable(table, column, asc = true) {
+    const dirModifier = asc ? 1 : -1;
+    const tBody = table.tBodies[0];
+    const rows = Array.from(tBody.querySelectorAll("tr"));
+
+    // Sort each row
+    const sortedRows = rows.sort((a, b) => {
+        let aColText = a.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+        let bColText = b.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+
+        // Check if we are sorting numbers (Rank or Dim)
+        const aColNum = parseFloat(aColText);
+        const bColNum = parseFloat(bColText);
+
+        if (!isNaN(aColNum) && !isNaN(bColNum)) {
+            return aColNum > bColNum ? (1 * dirModifier) : (-1 * dirModifier);
+        }
+
+        // Default to string sorting
+        return aColText.localeCompare(bColText) * dirModifier;
+    });
+
+    // Remove all existing TRs from the table
+    while (tBody.firstChild) {
+        tBody.removeChild(tBody.firstChild);
+    }
+
+    // Re-add the newly sorted rows
+    tBody.append(...sortedRows);
+
+    // Remember how the column is currently sorted
+    table.querySelectorAll("th").forEach(th => th.classList.remove("th-sort-asc", "th-sort-desc"));
+    table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("th-sort-asc", asc);
+    table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("th-sort-desc", !asc);
+}
+
+// Add event listeners to headers
+document.querySelectorAll("#category-table th").forEach(headerCell => {
+    headerCell.style.cursor = "pointer";
+    headerCell.addEventListener("click", () => {
+        const tableElement = headerCell.parentElement.parentElement.parentElement;
+        const headerIndex = Array.prototype.indexOf.call(headerCell.parentElement.children, headerCell);
+        const currentIsAscending = headerCell.classList.contains("th-sort-asc");
+
+        sortTable(tableElement, headerIndex, !currentIsAscending);
+    });
+});
+</script>
+
+{{ partial "footer.html" . }}

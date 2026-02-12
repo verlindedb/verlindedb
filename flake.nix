@@ -15,8 +15,15 @@
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
           venvDir = ".venv";
-          packages = with pkgs; [ poetry hugo sage python315 ] ++ (with python315Packages; [
+          packages = with pkgs; [
+            texliveSmall
+            hugo
             sage
+            python313 ] ++ (with python313Packages; [
+            drawsvg
+            matplotlib
+            sympy
+            joblib
           ]);
           LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:${pkgs.stdenv.cc.cc.lib}/lib";
         };

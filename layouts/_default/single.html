@@ -1,0 +1,194 @@
+{{ partial "header.html" . }}
+{{ if not .Params.notitle }}
+<div id="single-header">
+  <h1>
+    {{ .Title | safeHTML }}
+  </h1>
+  <div id="single-meta">
+    {{ if .Params.subtitle }}
+        <p id="subtitle">{{ .Params.subtitle }}</p>
+    {{ end }}
+    {{ if .Params.date }}
+        <span class="datesub">{{ .Date.Format "Jan 2, 2006" }}{{ if .GitInfo }} &nbsp;&nbsp; m. {{
+            .Lastmod.Format "Jan 2, 2006" }}{{ end }}</span>
+    {{ end }} {{ partial "tags.html" .}}
+  </div>
+</div>
+{{ else }}
+<div style="padding-bottom: 1px;"></div>
+{{ end }}
+
+{{ if .Params.toc }}
+<aside class="hidden lg:block toc " id="tableOfContentContainer">
+  {{ .TableOfContents }}
+</aside>
+{{ end }}
+
+
+<main>{{ .Content }}</main>
+
+{{ if .Params.Next }}
+    <br>
+    <hr>
+    {{ with .PrevInSection }}
+      Next: <a href="{{ .Permalink }}">{{ .Title }}</a>
+    {{ end }}
+{{ end }}
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Create the tooltip element once
+    const tooltip = document.createElement('div');
+    tooltip.id = 'fusion-tooltip';
+    document.body.appendChild(tooltip);
+});
+
+document.addEventListener('mouseover', function (e) {
+    const container = e.target.closest('.fusion-ring-container');
+    if (!container) return;
+
+    const target = e.target.closest('.mord');
+    if (!target) return;
+
+    // 1. Identify the position of the hovered element
+    const targetRect = target.getBoundingClientRect();
+    const targetCenterX = targetRect.left + targetRect.width / 2;
+    const targetCenterY = targetRect.top + targetRect.height / 2;
+
+    // 2. Find all symbols in this container
+    // Optimization: In a huge table, we might want to cache this, 
+    // but for <1000 items, querySelectorAll is fast enough.
+    const allSymbols = Array.from(container.querySelectorAll('.mord'));
+
+    // 3. Find the ROW HEADER (The element with same Y, but smallest X)
+    // We look for symbols in the same 'visual row' (within 10px vertical)
+    const rowCandidates = allSymbols.filter(el => {
+        const r = el.getBoundingClientRect();
+        return Math.abs((r.top + r.height/2) - targetCenterY) < 10;
+    });
+    // The header is the one furthest to the left
+    const rowHeader = rowCandidates.reduce((min, el) => 
+        el.getBoundingClientRect().left < min.getBoundingClientRect().left ? el : min
+    , rowCandidates[0]);
+
+    // 4. Find the COLUMN HEADER (The element with same X, but smallest Y)
+    // We look for symbols in the same 'visual column' (within 15px horizontal)
+    const colCandidates = allSymbols.filter(el => {
+        const r = el.getBoundingClientRect();
+        return Math.abs((r.left + r.width/2) - targetCenterX) < 15;
+    });
+    // The header is the one furthest to the top
+    const colHeader = colCandidates.reduce((min, el) =>
+        el.getBoundingClientRect().top < min.getBoundingClientRect().top ? el : min
+    , colCandidates[0]);
+
+    if (rowHeader && colHeader) {
+        const rowLabel = rowHeader.textContent;
+        const colLabel = colHeader.textContent;
+
+        if (target === rowHeader || target === colHeader) return;
+
+        tooltip.style.display = 'block';
+        tooltip.textContent = `${rowLabel} ⊗ ${colLabel}`;
+    }
+});
+
+// Update Position on Mouse Move
+document.addEventListener('mousemove', function (e) {
+    const tooltip = document.getElementById('fusion-tooltip');
+    if (tooltip.style.display === 'block') {
+        tooltip.style.left = e.clientX + 'px';
+        tooltip.style.top = e.clientY + 'px';
+    }
+});
+
+// Hide on Mouse Out
+document.addEventListener('mouseout', function (e) {
+    const tooltip = document.getElementById('fusion-tooltip');
+    if (e.target.closest('.mord')) {
+        tooltip.style.display = 'none';
+    }
+});
+</script>
+
+
+<script>
+// 1. Create the tooltip container
+const mathTooltip = document.createElement('div');
+mathTooltip.id = 'fusion-tooltip-box';
+Object.assign(mathTooltip.style, {
+    position: 'fixed',
+    background: 'rgba(0, 0, 0, 0.9)',
+    color: '#fff',
+    padding: '8px 12px',
+    borderRadius: '4px',
+    fontSize: '0.9rem',
+    minWidth: '60px',
+    textAlign: 'center',
+    pointerEvents: 'none',
+    display: 'none',
+    zIndex: '2147483647',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+    // Ensure the math inside is white
+    fill: '#fff' 
+});
+document.body.appendChild(mathTooltip);
+
+document.addEventListener('mouseover', (e) => {
+    // 1. Find the target
+    const target = e.target.closest('[data-title]');
+
+    if (target) {
+        // 2. Get the content (with the semicolon fix)
+        let latexSource = target.getAttribute('data-title');
+        // If you are using the semicolon hack:
+        latexSource = latexSource.replace(/;/g, ',');
+
+        // 3. Render the math
+        mathTooltip.innerHTML = '';
+        try {
+            katex.render(latexSource, mathTooltip, {
+                displayMode: false,
+                throwOnError: false,
+                colorIsTextColor: false
+            });
+            // Force white text
+            mathTooltip.querySelectorAll('.katex').forEach(el => {
+                el.style.color = 'white';
+            });
+        } catch (err) {
+            mathTooltip.textContent = latexSource;
+        }
+
+        mathTooltip.style.display = 'block';
+
+        updateTooltipPos(e.clientX, e.clientY);
+    }
+});
+
+function updateTooltipPos(x, y) {
+    mathTooltip.style.left = (x + 15) + 'px';
+    mathTooltip.style.top = (y + 15) + 'px';
+}
+
+document.addEventListener('mousemove', (e) => {
+    if (mathTooltip.style.display === 'block') {
+        updateTooltipPos(e.clientX, e.clientY);
+    }
+});
+
+document.addEventListener('mouseout', (e) => {
+    if (e.target.closest('[data-title]')) {
+        mathTooltip.style.display = 'none';
+    }
+});
+
+function updateTooltipPos(x, y) {
+    // Offset so the mouse doesn't cover the math
+    mathTooltip.style.left = (x + 15) + 'px';
+    mathTooltip.style.top = (y + 15) + 'px';
+}
+</script>
+{{ partial "footer.html" . }}

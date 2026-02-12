@@ -1,0 +1,9 @@
+{{ $path := .Get "path" }}
+<div class="matrix-controls">
+    <button
+        onclick="copyTexFile(this)"
+        class="copy-tex-btn"
+        data-filepath="{{ $path | absURL }}">
+        <span class="icon">📋</span> Copy .tex
+    </button>
+</div>

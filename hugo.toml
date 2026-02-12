@@ -1,4 +1,11 @@
-baseURL = 'https://example.org/'
+# baseURL = 'https://verlindedb.github.io/'
+baseURL = '/'
 languageCode = 'en-us'
-title = 'Quantum Cats'
-theme = 'ananke'
+title = 'VerlindeDB'
+theme = 'hugo-dead-simple'
+
+
+[markup.goldmark.renderer]
+  unsafe = true                # Allows HTML if needed
+[markup.goldmark.extensions]
+  typographer = false # Prevents (c) becoming © which breaks math
