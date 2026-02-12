@@ -17,6 +17,7 @@
           venvDir = ".venv";
           packages = with pkgs; [
             texliveSmall
+            go
             hugo
             sage
             python313 ] ++ (with python313Packages; [
