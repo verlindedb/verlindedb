@@ -1,11 +1,19 @@
-# baseURL = 'https://verlindedb.github.io/'
-baseURL = '/'
+baseURL = 'https://verlindedb.github.io/'
+# baseURL = '/'
 languageCode = 'en-us'
 title = 'VerlindeDB'
-theme = 'hugo-dead-simple'
+
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'
 
 
 [markup.goldmark.renderer]
   unsafe = true                # Allows HTML if needed
 [markup.goldmark.extensions]
   typographer = false # Prevents (c) becoming © which breaks math
+
+
+[module]
+  [[module.imports]]
+    path = 'github.com/barklan/hugo-dead-simple'
